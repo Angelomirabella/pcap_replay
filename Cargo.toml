@@ -1,0 +1,16 @@
+[package]
+name = "pcap_replay"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pcap-parser = { version = "0.13.0", features = ["serialize"] }
+socket2 = "0.4.4"
+
+[target."cfg(unix)".dependencies]
+libc = "0.2.114"
+
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3.9", features = ["iphlpapi", "iptypes", "ntdef", "ws2def",] }
