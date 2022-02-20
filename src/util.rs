@@ -5,6 +5,8 @@ use winapi::shared::ntdef::PWCHAR;
 
 use crate::interface;
 
+use std::collections::HashSet;
+
 /// Print the command help.
 pub fn show_usage() {
     println!("pcap_replay [options] <pcap_file>\n\n\
@@ -32,7 +34,8 @@ pub fn listnics() {
 
     println!("Available interfaces:");
     println!();
-    interfaces.into_iter()
-              .filter(|i| i.address.is_some())
-              .for_each(|i| println!("{}", i.name));
+
+    // Remove duplicates that might be there because of multiple addresses.
+    let names: HashSet<String> = interfaces.into_iter().map(|i| i.name).collect();
+    names.into_iter().for_each(|name| println!("{}", name));
 }

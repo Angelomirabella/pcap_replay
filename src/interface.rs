@@ -8,19 +8,24 @@ use {
     winapi::shared::winerror::{ERROR_BUFFER_OVERFLOW, ERROR_SUCCESS},
     winapi::shared::ws2def::AF_UNSPEC,
     winapi::um::iptypes::PIP_ADAPTER_ADDRESSES,
-    winapi::um::iphlpapi::GetAdaptersAddresses
+    winapi::um::iphlpapi::GetAdaptersAddresses,
+    crate::util
 };
+
+#[cfg(unix)]
+use {
+    libc::{getifaddrs, freeifaddrs, ifaddrs, socklen_t},
+    std::ffi::CStr
+};
+
 use socket2::SockAddr;
-
-
-use crate::util;
 
 
 pub struct Interface {
     // Name of the interface (friendly name for Windows).
     pub name: String,
     // Interface address, None if an interface is not available.
-    pub address: Option<SockAddr>
+    pub address: SockAddr
 }
 
 impl Interface {
@@ -44,7 +49,24 @@ impl Interface {
                 Ok(())
         }).unwrap();
 
-        Interface{ name, address: Some(address) }
+        Interface { name, address: Some(address) }
+    }
+
+    #[cfg(unix)]
+    /// Retrieve an interface from a ifaddrs struct.
+    unsafe fn from_ifaddrs(interface: *mut ifaddrs) -> Interface {
+        let ifaddr = &*interface;
+        let name = CStr::from_ptr(ifaddr.ifa_name).to_string_lossy().into_owned();
+
+        let (_, address) = SockAddr::init(|storage, length| {
+            let dst: *mut u8 = storage.cast();
+            let  len = std::mem::size_of_val(&ifaddr.ifa_addr);
+            dst.copy_from_nonoverlapping(ifaddr.ifa_addr.cast(), len);
+            *length = len as socklen_t;
+            Ok(())
+        }).unwrap();
+
+        Interface { name, address }
     }
 }
 
@@ -92,8 +114,30 @@ fn _get_interfaces_win() -> Result<Vec<Interface>> {
 #[cfg(unix)]
 /// Retrieve all the device network interfaces (Unix).
 fn _get_interfaces_unix() -> Result<Vec<Interface>> {
+    let mut ifaddrs: *mut ifaddrs= std::ptr::null_mut();
+    let ifaddrs_ptr: *mut *mut ifaddrs = &mut ifaddrs;
+    let mut res: Vec<Interface> = Vec::new();
 
-    Ok(Vec::new())
+    unsafe {
+        let err = getifaddrs(ifaddrs_ptr);
+
+        if err != 0 || ifaddrs.is_null() {
+            // Error.
+            return Err(Error::new(ErrorKind::Other,
+                                  format!("getifaddrs failed with error code {}", err)));
+        }
+
+        // Parse the network interfaces.
+        let mut interface = ifaddrs;
+        while !interface.is_null() {
+            res.push(Interface::from_ifaddrs(interface));
+            interface = (*interface).ifa_next;
+        }
+
+        freeifaddrs(ifaddrs);
+    }
+
+    Ok(res)
 }
 
 /// Retrieve all the device network interfaces.
