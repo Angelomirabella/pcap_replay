@@ -20,11 +20,11 @@ use {
 
 use socket2::SockAddr;
 
-
+/// Network Interface.
 pub struct Interface {
     // Name of the interface (friendly name for Windows).
     pub name: String,
-    // Interface address, None if an interface is not available.
+    // Interface address.
     pub address: SockAddr
 }
 
@@ -35,21 +35,17 @@ impl Interface {
         let adapter = &*adapter;
         let name = util::pwchar_to_string(adapter.FriendlyName);
 
-        if adapter.FirstUnicastAddress.is_null() {
-            return Interface{ name, address: None };
-        }
-
         // Map SOCKET_ADDRESS to SockAddr.
         let sock_address = &(*(adapter.FirstUnicastAddress)).Address;
         let (_, address) = SockAddr::init(|storage, length| {
-                let dst: *mut u8 = storage.cast();
-                dst.copy_from_nonoverlapping(sock_address.lpSockaddr.cast(),
-                                                 sock_address.iSockaddrLength as usize);
-                *length = sock_address.iSockaddrLength;
-                Ok(())
+            let dst: *mut u8 = storage.cast();
+            dst.copy_from_nonoverlapping(sock_address.lpSockaddr.cast(),
+                                         sock_address.iSockaddrLength as usize);
+            *length = sock_address.iSockaddrLength;
+            Ok(())
         }).unwrap();
 
-        Interface { name, address: Some(address) }
+        Interface { name, address }
     }
 
     #[cfg(unix)]
@@ -103,7 +99,10 @@ fn _get_interfaces_win() -> Result<Vec<Interface>> {
     let mut adapter = adapters.as_mut_ptr() as PIP_ADAPTER_ADDRESSES;
     while !adapter.is_null() {
         unsafe {
-            res.push(Interface::from_ip_adapter_addresses(adapter));
+            if !(*adapter).FirstUnicastAddress.is_null() {
+                res.push(Interface::from_ip_adapter_addresses(adapter));
+            }
+
             adapter = (*adapter).Next;
         }
     }
@@ -144,18 +143,37 @@ fn _get_interfaces_unix() -> Result<Vec<Interface>> {
 /// Wrapper around the corresponding platform specific methods.
 pub fn get_interfaces() -> Result<Vec<Interface>> {
     #[cfg(windows)]
-    {
-        _get_interfaces_win()
-    }
+        {
+            _get_interfaces_win()
+        }
 
     #[cfg(unix)]
-    {
-        _get_interfaces_unix()
-    }
+        {
+            _get_interfaces_unix()
+        }
 
     #[cfg(not(windows))]
-    #[cfg(not(unix))]
-    {
-        unimplemented!("Unsupported target OS");
+        #[cfg(not(unix))]
+        {
+            unimplemented!("Unsupported target OS");
+        }
+}
+
+/// Retrieve a network interface given its name.
+pub fn get_interface(name: &String) -> Option<Interface> {
+    let interfaces = get_interfaces().unwrap();
+
+    interfaces.into_iter()
+        .filter(| i| i.name == *name)
+        .min_by_key(| i | i.address.family())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::interface::get_interfaces;
+
+    #[test]
+    fn test_get_interfaces() {
+        assert_eq!(get_interfaces().unwrap().len() > 0, true);
     }
 }

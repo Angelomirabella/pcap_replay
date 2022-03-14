@@ -1,30 +1,58 @@
 //! Replay network traffic stored in PCAP/PCAPNG files.
-//!
-//! Reimplementation of the popular tool "tcpreplay".
 
-mod interface;
+#[cfg(windows)]
+mod windows;
+
+#[cfg(unix)]
+mod unix;
+
+mod replay;
 mod util;
 
-use std::env;
+use clap::{CommandFactory, Parser};
+
+
+/// Reimplementation of the popular tool "tcpreplay".
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None, arg_required_else_help = true)]
+pub struct Args {
+    /// Input network interface.
+    #[clap(long, short)]
+    pub intf1: Option<String>,
+
+    /// List the available network interfaces.
+    #[clap(long)]
+    pub listnics: bool,
+
+    /// List of PCAPs to process.
+    pub pcaps: Vec<String>,
+}
 
 
 fn main() {
-    if env::args().count() == 1 {
-        util::show_usage();
-        return
+    let args = Args::parse();
+    let mut exit = false;
+
+    if args.listnics {
+        util::listnics();
+        return;
     }
 
-    /* Parse command line arguments. */
-    for arg in env::args().skip(1) {
-        match &*arg {
-            "--listnics" => {
-                util::listnics();
-                return;
-            },
-            "-h" | "--help" | _ => {
-                util::show_usage();
-                return;
-            }
-        }
+    if args.intf1.is_none() {
+        eprintln!("Option intf1 is required");
+        exit = true;
     }
+
+    if args.pcaps.len() == 0 {
+        eprintln!("At least one pcap file is required");
+        exit = true;
+    }
+
+    if exit {
+        Args::command().print_help().unwrap();
+        return;
+    }
+
+    // let replayer = replay::Replayer::from_args(&args);
+    // replayer.replay();
 }
