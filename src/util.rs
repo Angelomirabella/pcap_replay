@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use crate::windows::interface;
 
 #[cfg(unix)]
-use crate::unix::interface;
+use crate::macos::interface;
 
 
 /// List the available interfaces.
@@ -17,6 +17,6 @@ pub fn listnics() {
     println!();
 
     // Remove duplicates that might be there because of multiple addresses.
-    let names: HashSet<String> = interfaces.into_iter().map(|i| i.name).collect();
+    let names: HashSet<String> = interfaces.into_iter().map(|i| i.name.clone()).collect();
     names.into_iter().for_each(|name| println!("{}", name));
 }

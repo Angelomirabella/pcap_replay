@@ -3,8 +3,8 @@
 #[cfg(windows)]
 mod windows;
 
-#[cfg(unix)]
-mod unix;
+#[cfg(target_os = "macos")]
+mod macos;
 
 mod replay;
 mod util;
@@ -53,6 +53,6 @@ fn main() {
         return;
     }
 
-    // let replayer = replay::Replayer::from_args(&args);
-    // replayer.replay();
+    let replayer = replay::Replayer::from_args(&args);
+    replayer.replay();
 }
