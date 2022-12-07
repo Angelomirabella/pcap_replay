@@ -1,11 +1,9 @@
 //! Collection of utility methods.
 
-use std::collections::HashSet;
-
 #[cfg(windows)]
 use crate::windows::interface;
 
-#[cfg(unix)]
+#[cfg(target_os = "macos")]
 use crate::macos::interface;
 
 
@@ -16,7 +14,5 @@ pub fn listnics() {
     println!("Available interfaces:");
     println!();
 
-    // Remove duplicates that might be there because of multiple addresses.
-    let names: HashSet<String> = interfaces.into_iter().map(|i| i.name.clone()).collect();
-    names.into_iter().for_each(|name| println!("{}", name));
+    interfaces.into_iter().for_each(|i| println!("{}", i.name));
 }

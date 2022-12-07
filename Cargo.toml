@@ -8,10 +8,10 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.1.2", features = ["derive"] }
 pcap-parser = { version = "0.13.0", features = ["serialize"] }
-socket2 = { version = "0.4.4", features = ["all"] }
 
-[target."cfg(unix)".dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 libc = "0.2.114"
 
-[target."cfg(windows)".dependencies]
-winapi = { version = "0.3.9", features = ["iphlpapi", "iptypes", "ntdef", "ws2def",] }
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.9", features = ["handleapi", "iphlpapi", "iptypes", "ntdef", "ws2def",] }
+winsockraw-sys = "0.1.0"

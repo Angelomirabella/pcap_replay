@@ -5,7 +5,6 @@ use super::Args;
 use std::fs::File;
 
 use pcap_parser::*;
-use pcap_parser::traits::PcapReaderIterator;
 
 #[cfg(target_os = "macos")]
 use crate::macos::interface::{self, Interface};
@@ -30,12 +29,11 @@ impl<'a> Replayer<'a> {
         }
     }
 
-
     /// Replay a single PCAP file.
     fn _replay_pcap(interface: &mut Interface, name: &String) {
         let file = File::open(name).unwrap();
         let mut pcap_cnt = 0;
-        let mut reader = LegacyPcapReader::new(65536, file).unwrap();
+        let mut reader = create_reader(65536, file).unwrap();
         loop {
             match reader.next() {
                 Ok((offset, block)) => {
