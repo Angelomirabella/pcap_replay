@@ -3,8 +3,8 @@
 #[cfg(windows)]
 mod windows;
 
-#[cfg(target_os = "macos")]
-mod macos;
+#[cfg(not(windows))]
+mod unix;
 
 mod replay;
 mod util;
@@ -12,7 +12,7 @@ mod util;
 use clap::{CommandFactory, Parser};
 
 
-/// Reimplementation of the popular tool "tcpreplay".
+/// Reimplementation of the popular tool "tcpreplay" (it may require administrator privileges).
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None, arg_required_else_help = true)]
 pub struct Args {

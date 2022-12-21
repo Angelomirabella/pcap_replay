@@ -6,11 +6,11 @@ use std::fs::File;
 
 use pcap_parser::*;
 
-#[cfg(target_os = "macos")]
-use crate::macos::interface::{self, Interface};
-
 #[cfg(windows)]
 use crate::windows::interface::{self, Interface};
+
+#[cfg(not(windows))]
+use crate::unix::interface::{self, Interface};
 
 /// Replayer object in charge of the main processing logic.
 pub struct Replayer<'a> {

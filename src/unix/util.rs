@@ -1,7 +1,11 @@
-/// Utility structs MacOs specific.
+/// Utility structs Unix specific.
+/// Redefine some libc structures which are not available on MacOS.
 
+
+#[cfg(target_os = "macos")]
 use libc::{c_char, c_int, c_short, c_uchar, c_uint, c_void, size_t, sockaddr};
 
+#[cfg(target_os = "macos")]
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -10,6 +14,7 @@ pub struct ifreq_buffer {
     pub buffer: *mut c_void,
 }
 
+#[cfg(target_os = "macos")]
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
 #[repr(C)]
@@ -31,6 +36,7 @@ pub union anonymous_ifr_ifru {
     pub ifru_vlan_pcp: c_uchar,
 }
 
+#[cfg(target_os = "macos")]
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy)]
 #[repr(C)]

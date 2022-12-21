@@ -3,16 +3,18 @@
 #[cfg(windows)]
 use crate::windows::interface;
 
-#[cfg(target_os = "macos")]
-use crate::macos::interface;
+#[cfg(not(windows))]
+use crate::unix::interface;
+
+use std::collections::HashSet;
 
 
 /// List the available interfaces.
 pub fn listnics() {
-    let interfaces = interface::get_interfaces().unwrap();
+    let interfaces: HashSet<String> = interface::get_interfaces().unwrap().into_iter().map(|i| i.name.clone()).collect();
 
     println!("Available interfaces:");
     println!();
 
-    interfaces.into_iter().for_each(|i| println!("{}", i.name));
+    interfaces.into_iter().for_each(|name| println!("{}", name));
 }
