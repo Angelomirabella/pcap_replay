@@ -64,11 +64,11 @@ impl Interface {
             let bytes_sent = winsockraw_sys::SocketRawSend(self.socket_handle, data.as_ptr() as *mut i8, data.len() as u32);
             if bytes_sent != data.len().try_into().unwrap() {
                 return Err(Error::new(
-                            ErrorKind::Other, 
+                            ErrorKind::Other,
                             format!("Failed to send data to the network interface with error: {}", GetLastError())));
             }
         }
- 
+
         Ok(data.len())
     }
 }
@@ -125,14 +125,6 @@ pub fn get_interfaces() -> Result<Vec<Interface>> {
     }
 
     Ok(res)
-}
-
-/// Retrieve a network interface given its name.
-pub fn get_interface(name: &str) -> Option<Interface> {
-    let interfaces = get_interfaces().unwrap();
-
-    interfaces.into_iter()
-        .filter(| i: &Interface| i.name == *name).next()
 }
 
 #[cfg(test)]

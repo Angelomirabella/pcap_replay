@@ -1,13 +1,17 @@
 //! Collection of utility methods.
 
 #[cfg(windows)]
-use crate::windows::interface;
+use crate::windows::interface::{self, Interface};
 
 #[cfg(not(windows))]
-use crate::unix::interface;
+use crate::unix::interface::{self, Interface};
 
 use std::collections::HashSet;
 
+/// Retrieve a network interface given its name.
+pub fn get_interface(name: &str) -> Option<Interface> {
+    interface::get_interfaces().unwrap().into_iter().find(|i| i.name == *name)
+}
 
 /// List the available interfaces.
 pub fn listnics() {

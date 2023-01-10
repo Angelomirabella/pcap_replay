@@ -66,7 +66,7 @@ impl Interface {
     #[cfg(target_os = "linux")]
     fn create_socket(&mut self) -> Result<()> {
         unsafe {
-            match socket(AF_PACKET, SOCK_RAW, ETH_P_ALL.to_be() as i32) {
+            match socket(AF_PACKET, SOCK_RAW, ETH_P_ALL.to_be()) {
                 -1 => Err(Error::new(ErrorKind::Other,
                             format!("Failed to open socket wiith error {}.",
                             std::io::Error::last_os_error().raw_os_error().unwrap()))),
@@ -141,14 +141,16 @@ impl Interface {
         }
 
         // Write the data to the socket.
+        let res :isize;
         unsafe {
-            if write(self.fd.unwrap(), data.as_ptr().cast(), data.len()) != data.len().try_into().unwrap() {
+            res = write(self.fd.unwrap(), data.as_ptr().cast(), data.len());
+            if res < 0 {
                 return Err(Error::new(ErrorKind::Other, "Failed to send all the data to \
                                                                     the network interface."));
             }
         }
 
-        Ok(data.len())
+        Ok(res as usize)
     }
 }
 
@@ -195,17 +197,12 @@ pub fn get_interfaces() -> Result<Vec<Interface>> {
     Ok(res)
 }
 
-/// Retrieve a network interface given its name.
-pub fn get_interface(name: &String) -> Option<Interface> {
-    get_interfaces().unwrap().into_iter().filter(| i| i.name == *name).next()
-}
-
 #[cfg(test)]
 mod tests {
     use crate::unix::interface::get_interfaces;
 
     #[test]
     fn test_get_interfaces() {
-        assert_eq!(get_interfaces().unwrap().len() > 0, true);
+        assert!(!get_interfaces().unwrap().is_empty());
     }
 }
