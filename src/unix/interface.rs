@@ -68,7 +68,7 @@ impl Interface {
         unsafe {
             match socket(AF_PACKET, SOCK_RAW, ETH_P_ALL.to_be()) {
                 -1 => Err(Error::new(ErrorKind::Other,
-                            format!("Failed to open socket wiith error {}.",
+                            format!("Failed to open socket with error {}.",
                             std::io::Error::last_os_error().raw_os_error().unwrap()))),
                 fd => {
                     self.fd = Some(fd);
