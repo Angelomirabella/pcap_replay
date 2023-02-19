@@ -233,7 +233,7 @@ impl Replayer {
         );
         println!(
             "\tSuccessful packets:\t{}\n\tFailed packets:\t\t{}\n\tTruncated packets:\t{}",
-            self.packet_cnt, 1, self.packet_truncated_cnt
+            self.packet_cnt, 0, self.packet_truncated_cnt
         );
     }
 }
