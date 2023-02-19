@@ -1,7 +1,6 @@
 /// Utility structs Unix specific.
 /// Redefine some libc structures which are not available on MacOS.
 
-
 #[cfg(target_os = "macos")]
 use libc::{c_char, c_int, c_short, c_uchar, c_uint, c_void, size_t, sockaddr};
 

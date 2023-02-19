@@ -4,25 +4,21 @@ use std::io::{Error, ErrorKind, Result};
 
 use winapi::{
     shared::{
+        ifdef::{IfOperStatusUp, IF_INDEX},
+        minwindef::FALSE,
         ntdef::PULONG,
-        ifdef::{IF_INDEX, IfOperStatusUp},
         winerror::{ERROR_BUFFER_OVERFLOW, ERROR_SUCCESS},
         ws2def::AF_UNSPEC,
-        minwindef::FALSE,
     },
     um::{
-        errhandlingapi::GetLastError,
-        handleapi::INVALID_HANDLE_VALUE,
-        iptypes::PIP_ADAPTER_ADDRESSES,
-        iphlpapi::GetAdaptersAddresses,
-        winnt::HANDLE
+        errhandlingapi::GetLastError, handleapi::INVALID_HANDLE_VALUE,
+        iphlpapi::GetAdaptersAddresses, iptypes::PIP_ADAPTER_ADDRESSES, winnt::HANDLE,
     },
 };
 
 use winsockraw_sys;
 
 use crate::windows::util;
-
 
 /// Network Interface.
 pub struct Interface {
@@ -40,7 +36,11 @@ impl Interface {
         let adapter_address = &*adapter_address;
         let name = util::pwchar_to_string(adapter_address.FriendlyName);
 
-        Interface { name, index: adapter_address.u.s().IfIndex, socket_handle: INVALID_HANDLE_VALUE }
+        Interface {
+            name,
+            index: adapter_address.u.s().IfIndex,
+            socket_handle: INVALID_HANDLE_VALUE,
+        }
     }
 
     /// Inject a packet in the interface.
@@ -55,17 +55,28 @@ impl Interface {
 
                 // Bind to interface.
                 if winsockraw_sys::SocketRawBind(self.socket_handle, self.index) == FALSE {
-                    return Err(Error::new(ErrorKind::Other, "Failed to bind raw socket to interface."));
+                    return Err(Error::new(
+                        ErrorKind::Other,
+                        "Failed to bind raw socket to interface.",
+                    ));
                 }
             }
         }
 
         unsafe {
-            let bytes_sent = winsockraw_sys::SocketRawSend(self.socket_handle, data.as_ptr() as *mut i8, data.len() as u32);
+            let bytes_sent = winsockraw_sys::SocketRawSend(
+                self.socket_handle,
+                data.as_ptr() as *mut i8,
+                data.len() as u32,
+            );
             if bytes_sent != data.len().try_into().unwrap() {
                 return Err(Error::new(
-                            ErrorKind::Other,
-                            format!("Failed to send data to the network interface with error: {}", GetLastError())));
+                    ErrorKind::Other,
+                    format!(
+                        "Failed to send data to the network interface with error: {}",
+                        GetLastError()
+                    ),
+                ));
             }
         }
 
@@ -99,24 +110,28 @@ pub fn get_interfaces() -> Result<Vec<Interface>> {
         adapter_addresses.resize(sizepointer as usize, 0);
 
         unsafe {
-            err = GetAdaptersAddresses(AF_UNSPEC as u32,
-                                       0,
-                                       std::ptr::null_mut(),
-                                       adapter_addresses.as_mut_ptr() as PIP_ADAPTER_ADDRESSES,
-                                       &mut sizepointer as PULONG);
+            err = GetAdaptersAddresses(
+                AF_UNSPEC as u32,
+                0,
+                std::ptr::null_mut(),
+                adapter_addresses.as_mut_ptr() as PIP_ADAPTER_ADDRESSES,
+                &mut sizepointer as PULONG,
+            );
         }
     }
 
     if err != ERROR_SUCCESS {
-        return Err(Error::new(ErrorKind::Other,
-                              format!("GetAdaptersAddresses failed with error code {}", err)));
+        return Err(Error::new(
+            ErrorKind::Other,
+            format!("GetAdaptersAddresses failed with error code {}", err),
+        ));
     }
 
     // Parse the network interfaces.
     let mut adapter_address = adapter_addresses.as_mut_ptr() as PIP_ADAPTER_ADDRESSES;
     while !adapter_address.is_null() {
         unsafe {
-            if (*adapter_address).OperStatus == IfOperStatusUp  {
+            if (*adapter_address).OperStatus == IfOperStatusUp {
                 res.push(Interface::from_ip_adapter_addresses(adapter_address));
             }
 

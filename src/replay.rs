@@ -38,14 +38,17 @@ pub struct Replayer {
 impl Replayer {
     /// Construct a Replayer object from the command line arguments.
     pub fn from_args(args: Args) -> Replayer {
-        Replayer{
+        Replayer {
             args,
             abort: false,
             byte_cnt: 0,
             oneatatime_packets_cnt: 0,
             packet_cnt: 0,
             packet_truncated_cnt: 0,
-            start_ts_us: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros() as u64
+            start_ts_us: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_micros() as u64,
         }
     }
 
@@ -59,38 +62,47 @@ impl Replayer {
         // Calculate how long to sleep.
         let mut sleep_us: u64 = 0;
         match &self.args {
-            Args {mbps, ..} if *mbps > 0.0 => {
-                let delta_us = (self.byte_cnt as f64 * 8.0 * 1000000.0 / (self.args.mbps * 1000000.0)) as u64;
+            Args { mbps, .. } if *mbps > 0.0 => {
+                let delta_us =
+                    (self.byte_cnt as f64 * 8.0 * 1000000.0 / (self.args.mbps * 1000000.0)) as u64;
                 if delta_us > elapsed_ts_us {
                     sleep_us = delta_us - elapsed_ts_us;
                 }
-            },
-            Args {oneatatime: true, ..} => {
+            }
+            Args {
+                oneatatime: true, ..
+            } => {
                 // Just wait on user's input.
                 if self.oneatatime_packets_cnt == 0 {
-                    println!("**** Next packet #{} out {}. How many packets do you wish to send?",
-                             self.packet_cnt + 1, self.args.intf1.as_ref().unwrap());
+                    println!(
+                        "**** Next packet #{} out {}. How many packets do you wish to send?",
+                        self.packet_cnt + 1,
+                        self.args.intf1.as_ref().unwrap()
+                    );
                     let mut input = String::new();
-                    self.oneatatime_packets_cnt = std::io::stdin().read_line(&mut input)
-                                                                  .map_or_else(|_e| 1,
-                                                                               |_v| input.trim().parse::<u32>().unwrap_or(1));
+                    self.oneatatime_packets_cnt = std::io::stdin()
+                        .read_line(&mut input)
+                        .map_or_else(|_e| 1, |_v| input.trim().parse::<u32>().unwrap_or(1));
                 }
-                println!("Sending packet {} out: {}", self.packet_cnt + 1,
-                                                      self.args.intf1.as_ref().unwrap());
+                println!(
+                    "Sending packet {} out: {}",
+                    self.packet_cnt + 1,
+                    self.args.intf1.as_ref().unwrap()
+                );
 
                 self.oneatatime_packets_cnt -= 1;
-            },
-            Args {pps, ..} if *pps > 0.0 => {
+            }
+            Args { pps, .. } if *pps > 0.0 => {
                 let delta_us = (self.packet_cnt as f64 * 1000000.0 / self.args.pps) as u64;
                 if delta_us > elapsed_ts_us {
                     sleep_us = delta_us - elapsed_ts_us;
                 }
-            },
-            Args {topspeed: true, ..} => {},
+            }
+            Args { topspeed: true, .. } => {}
             _ => {
                 // Rely on packets timestamps.
                 sleep_us = ((curr_pkt_ts_us - last_pkt_ts_us) as f64 * self.args.x) as u64;
-            },
+            }
         }
 
         // Adjust the sleep time to not exceed `maxsleep` and sleep.
@@ -116,18 +128,22 @@ impl Replayer {
                         PcapBlockOwned::Legacy(b) => {
                             // Check if we need to abort because of too many packets sent / too
                             // much time elapsed.
-                            let curr_ts_us = SystemTime::now().duration_since(UNIX_EPOCH)
-                                                              .unwrap()
-                                                              .as_micros() as u64;
+                            let curr_ts_us = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap()
+                                .as_micros() as u64;
                             let elapsed_ts_us = curr_ts_us - self.start_ts_us;
-                            if self.packet_cnt > self.args.limit ||
-                               u128::from(elapsed_ts_us) >= u128::from(self.args.duration) * 1000000 {
+                            if self.packet_cnt > self.args.limit
+                                || u128::from(elapsed_ts_us)
+                                    >= u128::from(self.args.duration) * 1000000
+                            {
                                 self.abort = true;
                                 return;
                             }
 
                             // Wait, if required.
-                            let curr_pkt_ts_us: u64 = (b.ts_sec as u64 * 1000000) + b.ts_usec as u64;
+                            let curr_pkt_ts_us: u64 =
+                                (b.ts_sec as u64 * 1000000) + b.ts_usec as u64;
                             self._wait(last_pkt_ts_us, curr_pkt_ts_us, elapsed_ts_us);
 
                             // Send data and update timestamp.
@@ -136,7 +152,7 @@ impl Replayer {
                                     println!("{}", e);
                                     self.abort = true;
                                     return;
-                                },
+                                }
                                 Ok(len) => {
                                     if len < b.data.len() {
                                         self.packet_truncated_cnt += 1;
@@ -149,16 +165,16 @@ impl Replayer {
                             }
 
                             last_pkt_ts_us = curr_pkt_ts_us;
-                        },
+                        }
                         PcapBlockOwned::NG(_) => unreachable!(),
                         _ => {}
                     }
                     reader.consume(offset);
-                },
+                }
                 Err(PcapError::Eof) => break,
                 Err(PcapError::Incomplete) => {
                     reader.refill().unwrap();
-                },
+                }
                 Err(e) => panic!("error while reading: {:?}", e),
             }
         }
@@ -167,10 +183,11 @@ impl Replayer {
     /// Replay the pcap(s).
     pub fn replay(&mut self) {
         // Validate the interface.
-        let mut interface = util::get_interface(self.args.intf1.as_ref().unwrap())
-                                           .expect("Invalid intf1 specified. Please list \
+        let mut interface = util::get_interface(self.args.intf1.as_ref().unwrap()).expect(
+            "Invalid intf1 specified. Please list \
                                                          available interfaces with option \
-                                                         \"--listnics\"");
+                                                         \"--listnics\"",
+        );
 
         // Support only PCAP files in a first iteration.
         for _ in 0..self.args.l {
@@ -195,16 +212,28 @@ impl Replayer {
         }
 
         // Print exit stats.
-        let end_ts_us = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_micros() as u64;
+        let end_ts_us = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_micros() as u64;
         let elapsed_s = (end_ts_us - self.start_ts_us) as f64 / 1000000.0;
-        println!("Actual: {} packets ({} bytes) sent in {:.6} seconds", self.packet_cnt,
-                 self.byte_cnt, elapsed_s);
-        println!("Rated: {:.1} Bps, {:.3} Mbps, {:.2} pps", self.byte_cnt as f64 / elapsed_s,
-                 self.byte_cnt as f64 * 8.0 / 1000000.0 / elapsed_s,
-                 self.packet_cnt as f64 / elapsed_s);
-        println!("Statistics for network device: {}", self.args.intf1.as_ref().unwrap());
-        println!("\tSuccessful packets:\t{}\n\tFailed packets:\t\t{}\n\tTruncated packets:\t{}",
-                 self.packet_cnt, 1, self.packet_truncated_cnt);
+        println!(
+            "Actual: {} packets ({} bytes) sent in {:.6} seconds",
+            self.packet_cnt, self.byte_cnt, elapsed_s
+        );
+        println!(
+            "Rated: {:.1} Bps, {:.3} Mbps, {:.2} pps",
+            self.byte_cnt as f64 / elapsed_s,
+            self.byte_cnt as f64 * 8.0 / 1000000.0 / elapsed_s,
+            self.packet_cnt as f64 / elapsed_s
+        );
+        println!(
+            "Statistics for network device: {}",
+            self.args.intf1.as_ref().unwrap()
+        );
+        println!(
+            "\tSuccessful packets:\t{}\n\tFailed packets:\t\t{}\n\tTruncated packets:\t{}",
+            self.packet_cnt, 1, self.packet_truncated_cnt
+        );
     }
 }
-

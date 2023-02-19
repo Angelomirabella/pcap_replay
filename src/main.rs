@@ -11,7 +11,6 @@ mod util;
 
 use clap::Parser;
 
-
 /// Reimplementation of the popular tool "tcpreplay" (it may require administrator privileges).
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None, arg_required_else_help = true)]
@@ -31,9 +30,14 @@ pub struct Args {
     pub listnics: bool,
 
     /// Loop through the capture file X times.
-    #[clap(default_value_t = 1, long = "loop", short, value_name = "NUM",
-           long_help = "Loop through the capture file X times\n\t- it must be in the range:\n\t\
-                        greater than or equal to 0")]
+    #[clap(
+        default_value_t = 1,
+        long = "loop",
+        short,
+        value_name = "NUM",
+        long_help = "Loop through the capture file X times\n\t- it must be in the range:\n\t\
+                     greater than or equal to 0"
+    )]
     pub l: u16,
 
     /// Limit the number of packets to send.
@@ -44,9 +48,13 @@ pub struct Args {
     pub limit: u64,
 
     /// Delay between loops in milliseconds.
-    #[clap(default_value_t = 0, long, value_name = "NUM",
-           long_help = "Delay between loops in milliseconds\n\t- requires the option 'loop'\n\t\
-                        - it must be in the range:\n\tgreater than or equal to 0")]
+    #[clap(
+        default_value_t = 0,
+        long,
+        value_name = "NUM",
+        long_help = "Delay between loops in milliseconds\n\t- requires the option 'loop'\n\t\
+                     - it must be in the range:\n\tgreater than or equal to 0"
+    )]
     pub loopdelay_ms: u64,
 
     /// Sleep for no more then X milliseconds between packets.
@@ -92,9 +100,8 @@ pub struct Args {
            long = "multiplier", short, value_name = "STR",
            long_help = "Modify replay speed to a given multiple\n\t- prohibits these options:\n\t\
                         pps\n\tmbps\n\toneatatime\n\ttopspeed")]
-    pub x: f64
+    pub x: f64,
 }
-
 
 fn main() {
     let args = Args::parse();

@@ -10,12 +10,19 @@ use std::collections::HashSet;
 
 /// Retrieve a network interface given its name.
 pub fn get_interface(name: &str) -> Option<Interface> {
-    interface::get_interfaces().unwrap().into_iter().find(|i| i.name == *name)
+    interface::get_interfaces()
+        .unwrap()
+        .into_iter()
+        .find(|i| i.name == *name)
 }
 
 /// List the available interfaces.
 pub fn listnics() {
-    let interfaces: HashSet<String> = interface::get_interfaces().unwrap().into_iter().map(|i| i.name.clone()).collect();
+    let interfaces: HashSet<String> = interface::get_interfaces()
+        .unwrap()
+        .into_iter()
+        .map(|i| i.name.clone())
+        .collect();
 
     println!("Available interfaces:");
     println!();
